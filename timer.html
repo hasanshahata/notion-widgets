@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+
 <style>
   /* Base Settings */
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Roboto', sans-serif; /* Use Roboto for body text */
     background-color: transparent;
     display: flex;
     justify-content: center;
@@ -25,25 +27,26 @@
     gap: 15px;
   }
 
-  /* Dark Mode Support for Container */
+  /* Dark Mode Support */
   body.dark .container {
     background: #202020;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     color: white;
   }
 
-  /* Title "Time Elapsed" */
+  /* Title "Healing Time" - Stylish & Black */
   .header {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #eb5757; /* Reddish accent like your image */
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    font-family: 'Playfair Display', serif; /* Stylish font */
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #000000; /* Black color */
     margin-bottom: 5px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
+  
+  body.dark .header { color: #ffffff; } /* White title in dark mode */
 
   /* The Row of Number Cards */
   .timer-row {
@@ -52,7 +55,7 @@
     text-align: center;
   }
 
-  /* Individual Digit Group (Box + Label) */
+  /* Individual Digit Group */
   .time-group {
     display: flex;
     flex-direction: column;
@@ -60,58 +63,84 @@
     gap: 6px;
   }
 
-  /* The Dark Number Box */
+  /* The Dark Number Box with Overflow Hidden for animation */
   .number-box {
-    background: #1f1f1f; /* Dark Card Color */
+    background: #1f1f1f;
     color: white;
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 700;
     width: 60px;
-    height: 60px;
+    height: 64px;
     border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-variant-numeric: tabular-nums;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden; /* Essential for the slide effect */
   }
 
-  /* Labels (Days, Hours...) */
+  /* The digit itself, which will animate */
+  .digit {
+    position: absolute;
+    /* Animation definitions */
+    animation-duration: 0.4s;
+    animation-fill-mode: forwards;
+    animation-timing-function: ease-in-out;
+  }
+
+  /* Animation Classes */
+  .slide-in { animation-name: slideInFromBottom; }
+  .slide-out { animation-name: slideOutToTop; }
+
+  @keyframes slideInFromBottom {
+    0% { transform: translateY(100%); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slideOutToTop {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-100%); opacity: 0; }
+  }
+
+  /* Labels */
   .label {
     font-size: 0.75rem;
     color: #888;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
   /* Buttons */
   .controls {
     display: flex;
     gap: 10px;
-    margin-top: 5px;
+    margin-top: 10px;
   }
 
   button {
     background: #f0f0f0;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 8px 20px;
+    border-radius: 50px;
     cursor: pointer;
     font-weight: 600;
     color: #333;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     transition: all 0.2s ease;
   }
 
   button:hover { background: #e0e0e0; }
   
   button.active {
-    background: #eb5757; /* Matches header accent */
+    background: #000000; /* Black active button */
     color: white;
   }
 
   body.dark button { background: #3a3a3a; color: #ddd; }
   body.dark button:hover { background: #4a4a4a; }
-  body.dark button.active { background: #eb5757; color: white; }
+  body.dark button.active { background: #ffffff; color: black; }
 
 </style>
 </head>
@@ -120,28 +149,25 @@
 <div class="container">
   
   <div class="header">
-    <span>⏱️ Stopwatch</span>
+    <span>✨ Healing Time</span>
   </div>
 
   <div class="timer-row">
     <div class="time-group">
-      <div class="number-box" id="days">00</div>
+      <div class="number-box" id="days-box"><span class="digit">00</span></div>
       <span class="label">Days</span>
     </div>
-    
     <div class="time-group">
-      <div class="number-box" id="hours">00</div>
+      <div class="number-box" id="hours-box"><span class="digit">00</span></div>
       <span class="label">Hours</span>
     </div>
-
     <div class="time-group">
-      <div class="number-box" id="minutes">00</div>
+      <div class="number-box" id="minutes-box"><span class="digit">00</span></div>
       <span class="label">Minutes</span>
     </div>
-
     <div class="time-group">
-      <div class="number-box" id="seconds">00</div>
-      <span class="label">Second</span>
+      <div class="number-box" id="seconds-box"><span class="digit">00</span></div>
+      <span class="label">Seconds</span>
     </div>
   </div>
 
@@ -157,10 +183,37 @@
   let elapsedTime = 0;
   let timerInterval;
   let running = false;
+  // Store previous values to check for changes
+  let prevValues = { d: '00', h: '00', m: '00', s: '00' };
 
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('theme') === 'dark') {
     document.body.classList.add('dark');
+  }
+
+  // Function to handle the digit transition
+  function updateDigit(boxId, newValue, type) {
+    if (prevValues[type] !== newValue) {
+      const box = document.getElementById(boxId);
+      const oldDigit = box.querySelector('.digit.slide-in') || box.querySelector('.digit');
+      
+      // Create new digit element
+      const newDigit = document.createElement('span');
+      newDigit.className = 'digit slide-in';
+      newDigit.textContent = newValue;
+      
+      // Animate out old digit
+      if (oldDigit) {
+        oldDigit.classList.remove('slide-in');
+        oldDigit.classList.add('slide-out');
+        // Remove element after animation finishes
+        setTimeout(() => { if(box.contains(oldDigit)) box.removeChild(oldDigit); }, 400);
+      }
+      
+      // Add new digit
+      box.appendChild(newDigit);
+      prevValues[type] = newValue;
+    }
   }
 
   function updateDisplay() {
@@ -170,31 +223,26 @@
     }
 
     const totalSeconds = Math.floor(time / 1000);
-    const s = totalSeconds % 60;
-    const m = Math.floor(totalSeconds / 60) % 60;
-    const h = Math.floor(totalSeconds / 3600) % 24;
-    const d = Math.floor(totalSeconds / (3600 * 24));
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    const m = (Math.floor(totalSeconds / 60) % 60).toString().padStart(2, '0');
+    const h = (Math.floor(totalSeconds / 3600) % 24).toString().padStart(2, '0');
+    const d = Math.floor(totalSeconds / (3600 * 24)).toString().padStart(2, '0');
 
-    // Helper to add leading zero (e.g., 5 -> 05)
-    const f = (num) => num.toString().padStart(2, '0');
-
-    document.getElementById("days").textContent = f(d);
-    document.getElementById("hours").textContent = f(h);
-    document.getElementById("minutes").textContent = f(m);
-    document.getElementById("seconds").textContent = f(s);
+    updateDigit('days-box', d, 'd');
+    updateDigit('hours-box', h, 'h');
+    updateDigit('minutes-box', m, 'm');
+    updateDigit('seconds-box', s, 's');
   }
 
   function toggleTimer() {
     const btn = document.getElementById("startBtn");
     if (running) {
-      // Pause
       running = false;
       elapsedTime += Date.now() - startTime;
       clearInterval(timerInterval);
       btn.textContent = "Start";
       btn.classList.remove("active");
     } else {
-      // Start
       running = true;
       startTime = Date.now();
       timerInterval = setInterval(updateDisplay, 100);
@@ -207,6 +255,8 @@
     running = false;
     clearInterval(timerInterval);
     elapsedTime = 0;
+    // Reset display with animation
+    prevValues = { d: null, h: null, m: null, s: null }; // Force update
     updateDisplay();
     document.getElementById("startBtn").textContent = "Start";
     document.getElementById("startBtn").classList.remove("active");
