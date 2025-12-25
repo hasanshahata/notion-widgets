@@ -2,11 +2,10 @@
 <html>
 <head>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
-
 <style>
-  /* Base Settings */
+  /* --- STYLES --- */
   body {
-    font-family: 'Roboto', sans-serif; /* Use Roboto for body text */
+    font-family: 'Roboto', sans-serif;
     background-color: transparent;
     display: flex;
     justify-content: center;
@@ -14,8 +13,6 @@
     height: 100vh;
     margin: 0;
   }
-
-  /* The Main Card Container */
   .container {
     background: white;
     padding: 20px 30px;
@@ -26,44 +23,34 @@
     align-items: center;
     gap: 15px;
   }
-
-  /* Dark Mode Support */
   body.dark .container {
     background: #202020;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     color: white;
   }
-
-  /* Title "Healing Time" - Stylish & Black */
   .header {
-    font-family: 'Playfair Display', serif; /* Stylish font */
+    font-family: 'Playfair Display', serif;
     font-size: 1.5rem;
     font-weight: 700;
-    color: #000000; /* Black color */
+    color: #000000;
     margin-bottom: 5px;
     display: flex;
     align-items: center;
     gap: 8px;
   }
+  body.dark .header { color: #ffffff; }
   
-  body.dark .header { color: #ffffff; } /* White title in dark mode */
-
-  /* The Row of Number Cards */
   .timer-row {
     display: flex;
     gap: 12px;
     text-align: center;
   }
-
-  /* Individual Digit Group */
   .time-group {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
   }
-
-  /* The Dark Number Box with Overflow Hidden for animation */
   .number-box {
     background: #1f1f1f;
     color: white;
@@ -77,33 +64,26 @@
     align-items: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     position: relative;
-    overflow: hidden; /* Essential for the slide effect */
+    overflow: hidden;
   }
-
-  /* The digit itself, which will animate */
   .digit {
     position: absolute;
-    /* Animation definitions */
     animation-duration: 0.4s;
     animation-fill-mode: forwards;
     animation-timing-function: ease-in-out;
   }
-
-  /* Animation Classes */
   .slide-in { animation-name: slideInFromBottom; }
   .slide-out { animation-name: slideOutToTop; }
-
+  
   @keyframes slideInFromBottom {
     0% { transform: translateY(100%); opacity: 0; }
     100% { transform: translateY(0); opacity: 1; }
   }
-  
   @keyframes slideOutToTop {
     0% { transform: translateY(0); opacity: 1; }
     100% { transform: translateY(-100%); opacity: 0; }
   }
-
-  /* Labels */
+  
   .label {
     font-size: 0.75rem;
     color: #888;
@@ -111,43 +91,19 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
-
-  /* Buttons */
-  .controls {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
-
-  button {
-    background: #f0f0f0;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 50px;
-    cursor: pointer;
-    font-weight: 600;
-    color: #333;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-  }
-
-  button:hover { background: #e0e0e0; }
   
-  button.active {
-    background: #000000; /* Black active button */
-    color: white;
+  /* Message when timer is stopped */
+  .status-msg {
+    color: #888;
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-top: 5px;
   }
-
-  body.dark button { background: #3a3a3a; color: #ddd; }
-  body.dark button:hover { background: #4a4a4a; }
-  body.dark button.active { background: #ffffff; color: black; }
-
 </style>
 </head>
 <body>
 
 <div class="container">
-  
   <div class="header">
     <span>✨ Healing Time</span>
   </div>
@@ -170,59 +126,65 @@
       <span class="label">Seconds</span>
     </div>
   </div>
-
-  <div class="controls">
-    <button id="startBtn" onclick="toggleTimer()">Start</button>
-    <button onclick="resetTimer()">Reset</button>
-  </div>
+  
+  <div id="status" class="status-msg"></div>
 
 </div>
 
 <script>
-  let startTime;
-  let elapsedTime = 0;
-  let timerInterval;
-  let running = false;
-  // Store previous values to check for changes
+  // ==========================================
+  //      👇 ENTER YOUR START DATE BELOW 👇
+  //      Format: "YYYY-MM-DD HH:MM:SS"
+  //      Example: "2024-05-20 14:30:00"
+  //      To RESET: Leave the quotes empty ""
+  // ==========================================
+  
+  const START_TIME_STRING = "2025-12-25 07:30:00";  
+
+  // ==========================================
+  
   let prevValues = { d: '00', h: '00', m: '00', s: '00' };
 
+  // Check Dark Mode
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('theme') === 'dark') {
     document.body.classList.add('dark');
   }
 
-  // Function to handle the digit transition
   function updateDigit(boxId, newValue, type) {
     if (prevValues[type] !== newValue) {
       const box = document.getElementById(boxId);
       const oldDigit = box.querySelector('.digit.slide-in') || box.querySelector('.digit');
-      
-      // Create new digit element
       const newDigit = document.createElement('span');
       newDigit.className = 'digit slide-in';
       newDigit.textContent = newValue;
       
-      // Animate out old digit
       if (oldDigit) {
         oldDigit.classList.remove('slide-in');
         oldDigit.classList.add('slide-out');
-        // Remove element after animation finishes
         setTimeout(() => { if(box.contains(oldDigit)) box.removeChild(oldDigit); }, 400);
       }
-      
-      // Add new digit
       box.appendChild(newDigit);
       prevValues[type] = newValue;
     }
   }
 
   function updateDisplay() {
-    let time = elapsedTime;
-    if (running) {
-      time += Date.now() - startTime;
+    // If no start time is set in the code, show 00 and stop.
+    if (!START_TIME_STRING) {
+      document.getElementById("status").textContent = "Waiting for date in code...";
+      return;
     }
+    
+    document.getElementById("status").textContent = "";
+    
+    const start = new Date(START_TIME_STRING).getTime();
+    const now = new Date().getTime();
+    const totalSeconds = Math.floor((now - start) / 1000);
 
-    const totalSeconds = Math.floor(time / 1000);
+    // If date is in the future or invalid, keep at 0
+    if (isNaN(totalSeconds) || totalSeconds < 0) return;
+
     const s = (totalSeconds % 60).toString().padStart(2, '0');
     const m = (Math.floor(totalSeconds / 60) % 60).toString().padStart(2, '0');
     const h = (Math.floor(totalSeconds / 3600) % 24).toString().padStart(2, '0');
@@ -234,32 +196,10 @@
     updateDigit('seconds-box', s, 's');
   }
 
-  function toggleTimer() {
-    const btn = document.getElementById("startBtn");
-    if (running) {
-      running = false;
-      elapsedTime += Date.now() - startTime;
-      clearInterval(timerInterval);
-      btn.textContent = "Start";
-      btn.classList.remove("active");
-    } else {
-      running = true;
-      startTime = Date.now();
-      timerInterval = setInterval(updateDisplay, 100);
-      btn.textContent = "Pause";
-      btn.classList.add("active");
-    }
-  }
-
-  function resetTimer() {
-    running = false;
-    clearInterval(timerInterval);
-    elapsedTime = 0;
-    // Reset display with animation
-    prevValues = { d: null, h: null, m: null, s: null }; // Force update
-    updateDisplay();
-    document.getElementById("startBtn").textContent = "Start";
-    document.getElementById("startBtn").classList.remove("active");
+  // Run immediately and then every second
+  updateDisplay();
+  if (START_TIME_STRING) {
+    setInterval(updateDisplay, 1000);
   }
 </script>
 
